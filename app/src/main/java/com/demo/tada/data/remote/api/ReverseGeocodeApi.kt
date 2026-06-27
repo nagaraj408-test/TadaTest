@@ -6,10 +6,11 @@ import retrofit2.http.Query
 
 interface ReverseGeocodeApi {
 
-    @GET("data/reverse-geocode-client")
+    @GET("data/reverse-geocode")
     suspend fun reverseGeocode(
         @Query("latitude") latitude: Double,
         @Query("longitude") longitude: Double,
-        @Query("localityLanguage") language: String = "en"
+        @Query("localityLanguage") language: String = "en",
+        @Query("key") apiKey: String = com.demo.tada.utils.Constants.BDC_API_KEY
     ): ReverseGeocodeResponseDto
 }

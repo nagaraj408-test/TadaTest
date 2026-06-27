@@ -16,17 +16,24 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MyLocation
+import kotlin.time.Duration.Companion.seconds
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -48,11 +55,10 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
-
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.PermissionState
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 @SuppressLint("MissingPermission")
 @OptIn(ExperimentalPermissionsApi::class)
@@ -64,32 +70,34 @@ fun MapScreen(
 
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    val locationPermissionState: PermissionState = rememberPermissionState(
-        Manifest.permission.ACCESS_FINE_LOCATION
+    val permissionsState = rememberMultiplePermissionsState(
+        listOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
     )
 
     val fusedLocationClient = remember {
         LocationServices.getFusedLocationProviderClient(context)
     }
 
-    val cameraPositionState =
-        rememberCameraPositionState {
-            position = CameraPosition.fromLatLngZoom(
-                LatLng(37.5665, 126.9780),
-                15f
-            )
-        }
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(
+            LatLng(37.5665, 126.9780),
+            15f
+        )
+    }
 
-    // Tracks if we've already moved to the user's initial location
+    // Tracs if we already moved to the user initial location
     var hasSnappedToUser by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        locationPermissionState.launchPermissionRequest()
+        permissionsState.launchMultiplePermissionRequest()
     }
 
-    // Handle initial location snap ONLY ONCE
-    LaunchedEffect(locationPermissionState.status.isGranted) {
-        if (locationPermissionState.status.isGranted && !hasSnappedToUser) {
+    // Handles initial location
+    LaunchedEffect(permissionsState.allPermissionsGranted) {
+        if (permissionsState.allPermissionsGranted && !hasSnappedToUser) {
             fusedLocationClient.lastLocation.addOnSuccessListener { location ->
                 if (location != null) {
                     cameraPositionState.move(
@@ -111,20 +119,20 @@ fun MapScreen(
         }
     }
 
-    // Single source of truth for AQI updates: whenever camera stops moving
-    LaunchedEffect(cameraPositionState.isMoving) {
-        if (!cameraPositionState.isMoving) {
-            val target = cameraPositionState.position.target
-            // Only update if target is valid
-            if (target.latitude != 0.0 || target.longitude != 0.0) {
-                viewModel.onEvent(
-                    MapEvent.CameraMoved(
-                        latitude = target.latitude,
-                        longitude = target.longitude
+    // Sync camera target with ViewModel (Pointer Location & AQI)
+    LaunchedEffect(cameraPositionState) {
+        snapshotFlow { cameraPositionState.position.target }
+            .distinctUntilChanged()
+            .collectLatest { target ->
+                if (target.latitude != 0.0 || target.longitude != 0.0) {
+                    viewModel.onEvent(
+                        MapEvent.CameraMoved(
+                            latitude = target.latitude,
+                            longitude = target.longitude
+                        )
                     )
-                )
+                }
             }
-        }
     }
 
     LaunchedEffect(uiState.navigateToBooking) {
@@ -181,12 +189,56 @@ fun MapScreen(
         }
 
         Box(modifier = Modifier.weight(1f)) {
+
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
                 cameraPositionState = cameraPositionState,
-                properties = MapProperties(isMyLocationEnabled = locationPermissionState.status.isGranted),
-                uiSettings = MapUiSettings(zoomControlsEnabled = false)
+                properties = MapProperties(
+                    isMyLocationEnabled = permissionsState.allPermissionsGranted,
+                ),
+                uiSettings = MapUiSettings(
+                    zoomControlsEnabled = false,
+                    myLocationButtonEnabled = false
+                )
             )
+
+            // My Location Button
+            if (permissionsState.allPermissionsGranted) {
+                FloatingActionButton(
+                    onClick = {
+                        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                            if (location != null) {
+                                cameraPositionState.move(
+                                    CameraUpdateFactory.newLatLngZoom(
+                                        LatLng(location.latitude, location.longitude),
+                                        15f
+                                    )
+                                )
+                            } else {
+                                fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                                    .addOnSuccessListener { freshLocation ->
+                                        freshLocation?.let {
+                                            cameraPositionState.move(
+                                                CameraUpdateFactory.newLatLngZoom(
+                                                    LatLng(it.latitude, it.longitude),
+                                                    15f
+                                                )
+                                            )
+                                        }
+                                    }
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(bottom = 140.dp, end = 16.dp),
+                    containerColor = Color.White,
+                    contentColor = TadaBlue,
+                    shape = CircleShape
+                ) {
+                    Icon(imageVector = Icons.Default.MyLocation, contentDescription = "My Location")
+                }
+            }
 
             // Marker at Center
             Box(
@@ -194,19 +246,26 @@ fun MapScreen(
                     .align(Alignment.Center)
                     .padding(bottom = 32.dp)
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.icon_pin),
-                    contentDescription = null,
-                    modifier = Modifier.size(40.dp)
-                )
-
-                Box(
-                    modifier = Modifier
-                        .size(4.dp, 12.dp)
-                        .background(Color.Black)
-                        .align(Alignment.BottomCenter)
-                        .padding(top = 28.dp)
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    // Address Tooltip
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color.Black.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    ) {
+                        Text(
+                            text = uiState.currentAddress,
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                    Image(
+                        painter = painterResource(id = R.drawable.icon_pin),
+                        contentDescription = null,
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
             }
 
             // Bottom UI Section
@@ -219,6 +278,7 @@ fun MapScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .height(IntrinsicSize.Min)
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -269,8 +329,8 @@ fun MapScreen(
                             }
                         },
                         modifier = Modifier
-                            .width(112.dp) // Wider for responsiveness
-                            .height(104.dp),
+                            .width(112.dp)
+                            .fillMaxHeight(),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = TadaYellow,

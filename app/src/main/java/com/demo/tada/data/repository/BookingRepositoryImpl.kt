@@ -1,5 +1,6 @@
 package com.demo.tada.data.repository
 
+import android.util.Log
 import com.demo.tada.data.mapper.BookMapper
 import com.demo.tada.data.remote.api.AirQualityApi
 import com.demo.tada.data.remote.api.BookingApi
@@ -37,9 +38,17 @@ class BookingRepositoryImpl @Inject constructor(
             latitude = latitude, longitude = longitude
         )
 
-        return response
-            .localityInfo?.administrative?.sortedByDescending { it.order }?.take(2)
-            ?.reversed()?.joinToString(", ") { it.name }
+        Log.d("TAG", "TESTRESPONSE geo: $response")
+
+        val values = response.localityInfo?.administrative
+            ?.sortedByDescending { it.order }
+            ?.take(2)
+            ?.sortedBy { it.order }
+            ?.joinToString(", ") { it.name }
+
+        Log.d("TAG", "TESTRESPONSE geo value: $values")
+
+        return values
     }
 
 

@@ -10,6 +10,8 @@ data class MapUiState(
 
     val currentAqi: Int = 0,
 
+    val currentAddress: String = "Searching location...",
+
     val aLocation: LocationInfo? = null,
 
     val bLocation: LocationInfo? = null,

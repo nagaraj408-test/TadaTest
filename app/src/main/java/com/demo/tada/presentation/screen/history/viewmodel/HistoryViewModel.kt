@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.demo.tada.domain.usecase.GetBookingsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -29,10 +30,9 @@ class HistoryViewModel @Inject constructor(
         val month = calendar.get(Calendar.MONTH) + 1 // Calendar.MONTH is 0-indexed
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            runCatching {
-                getBookingsUseCase(year, month)
-            }.onSuccess { bookings ->
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            try {
+                val bookings = getBookingsUseCase(year, month)
                 _uiState.update {
                     it.copy(
                         bookings = bookings,
@@ -41,11 +41,12 @@ class HistoryViewModel @Inject constructor(
                         isLoading = false
                     )
                 }
-            }.onFailure { throwable ->
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = throwable.message
+                        error = e.message
                     )
                 }
             }
