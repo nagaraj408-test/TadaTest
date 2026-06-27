@@ -80,30 +80,30 @@ fun MapScreen(
             )
         }
 
-    // Helper to sync camera and trigger AQI
-    val updateCameraAndAqi = { lat: Double, lng: Double ->
-        cameraPositionState.move(
-            CameraUpdateFactory.newLatLngZoom(LatLng(lat, lng), 15f)
-        )
-        viewModel.onEvent(MapEvent.CameraMoved(latitude = lat, longitude = lng))
-    }
+    // Tracks if we've already moved to the user's initial location
+    var hasSnappedToUser by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         locationPermissionState.launchPermissionRequest()
     }
 
-    // Handle initial location and its AQI
+    // Handle initial location snap ONLY ONCE
     LaunchedEffect(locationPermissionState.status.isGranted) {
-        if (locationPermissionState.status.isGranted) {
+        if (locationPermissionState.status.isGranted && !hasSnappedToUser) {
             fusedLocationClient.lastLocation.addOnSuccessListener { location ->
                 if (location != null) {
-                    updateCameraAndAqi(location.latitude, location.longitude)
+                    cameraPositionState.move(
+                        CameraUpdateFactory.newLatLngZoom(LatLng(location.latitude, location.longitude), 15f)
+                    )
+                    hasSnappedToUser = true
                 } else {
-                    // Force current location if lastLocation is null (common for Pune/Real device)
                     fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
                         .addOnSuccessListener { freshLocation ->
                             freshLocation?.let {
-                                updateCameraAndAqi(it.latitude, it.longitude)
+                                cameraPositionState.move(
+                                    CameraUpdateFactory.newLatLngZoom(LatLng(it.latitude, it.longitude), 15f)
+                                )
+                                hasSnappedToUser = true
                             }
                         }
                 }
@@ -111,16 +111,19 @@ fun MapScreen(
         }
     }
 
-    // Regular camera movement updates - simplified and reliable
+    // Single source of truth for AQI updates: whenever camera stops moving
     LaunchedEffect(cameraPositionState.isMoving) {
         if (!cameraPositionState.isMoving) {
             val target = cameraPositionState.position.target
-            viewModel.onEvent(
-                MapEvent.CameraMoved(
-                    latitude = target.latitude,
-                    longitude = target.longitude
+            // Only update if target is valid
+            if (target.latitude != 0.0 || target.longitude != 0.0) {
+                viewModel.onEvent(
+                    MapEvent.CameraMoved(
+                        latitude = target.latitude,
+                        longitude = target.longitude
+                    )
                 )
-            )
+            }
         }
     }
 
@@ -266,7 +269,7 @@ fun MapScreen(
                             }
                         },
                         modifier = Modifier
-                            .width(108.dp) // Slightly wider for text fit
+                            .width(112.dp) // Wider for responsiveness
                             .height(104.dp),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
