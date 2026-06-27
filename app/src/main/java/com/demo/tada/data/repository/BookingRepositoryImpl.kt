@@ -37,7 +37,8 @@ class BookingRepositoryImpl @Inject constructor(
             latitude = latitude, longitude = longitude
         )
 
-        return response.localityInfo?.administrative?.sortedByDescending { it.order }?.take(2)
+        return response
+            .localityInfo?.administrative?.sortedByDescending { it.order }?.take(2)
             ?.reversed()?.joinToString(", ") { it.name }
     }
 

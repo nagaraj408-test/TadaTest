@@ -4,6 +4,7 @@ import com.demo.tada.data.remote.api.AirQualityApi
 import com.demo.tada.data.remote.api.BookingApi
 import com.demo.tada.data.remote.api.ReverseGeocodeApi
 import com.demo.tada.data.remote.mock.MockBookingInterceptor
+import com.demo.tada.utils.Constants
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -50,7 +51,7 @@ object NetworkModule {
         @Named("real") client: OkHttpClient
     ): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("https://api.waqi.info/")
+            .baseUrl(Constants.AQI_BASE_URL)
             .client(client)
             .addConverterFactory(
                 GsonConverterFactory.create()
@@ -65,7 +66,7 @@ object NetworkModule {
         @Named("real") client: OkHttpClient
     ): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("https://api.bigdatacloud.net/")
+            .baseUrl(Constants.GEO_BASE_URL)
             .client(client)
             .addConverterFactory(
                 GsonConverterFactory.create()
@@ -80,7 +81,7 @@ object NetworkModule {
         @Named("mock") client: OkHttpClient
     ): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("https://mock.booking/")
+            .baseUrl(Constants.BOOKING_BASE_URL)
             .client(client)
             .addConverterFactory(
                 GsonConverterFactory.create()
