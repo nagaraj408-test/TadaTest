@@ -22,6 +22,10 @@ class BookingRepositoryImpl @Inject constructor(
     private val cachedLocations = mutableListOf<CachedLocation>()
 
     override suspend fun getAirQuality(latitude: Double, longitude: Double): Int {
+        val cached = findInCache(latitude, longitude)
+        if (cached != null) {
+            return cached.aqi
+        }
 
         return airQualityApi.getAirQuality(
             latitude = latitude,
@@ -33,6 +37,10 @@ class BookingRepositoryImpl @Inject constructor(
     override suspend fun getAddress(
         latitude: Double, longitude: Double
     ): String? {
+        val cached = findInCache(latitude, longitude)
+        if (cached != null) {
+            return cached.address
+        }
 
         val response = reverseGeocodeApi.reverseGeocode(
             latitude = latitude, longitude = longitude
@@ -49,6 +57,12 @@ class BookingRepositoryImpl @Inject constructor(
         Log.d("TAG", "TESTRESPONSE geo value: $values")
 
         return values
+    }
+
+    private fun findInCache(lat: Double, lng: Double): CachedLocation? {
+        return cachedLocations.find {
+            kotlin.math.abs(it.latitude - lat) < 0.001 && kotlin.math.abs(it.longitude - lng) < 0.001
+        }
     }
 
 

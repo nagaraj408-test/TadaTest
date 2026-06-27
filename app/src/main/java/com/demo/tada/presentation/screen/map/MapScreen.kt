@@ -88,6 +88,20 @@ fun MapScreen(
         )
     }
 
+    // Observe History Selection
+    val navBackStackEntry = navController.currentBackStackEntry
+    val bookA = navBackStackEntry?.savedStateHandle?.get<com.demo.tada.domain.model.LocationInfo>("book_a")
+    val bookB = navBackStackEntry?.savedStateHandle?.get<com.demo.tada.domain.model.LocationInfo>("book_b")
+    
+    LaunchedEffect(bookA, bookB) {
+        if (bookA != null && bookB != null) {
+            viewModel.setLocationsFromHistory(bookA, bookB)
+            // Clear the saved state
+            navBackStackEntry.savedStateHandle.remove<com.demo.tada.domain.model.LocationInfo>("book_a")
+            navBackStackEntry.savedStateHandle.remove<com.demo.tada.domain.model.LocationInfo>("book_b")
+        }
+    }
+
     // Tracs if we already moved to the user initial location
     var hasSnappedToUser by remember { mutableStateOf(false) }
 
@@ -146,6 +160,13 @@ fun MapScreen(
         uiState.navigateToNickname?.let { type ->
             navController.navigate(Screen.Nickname.createRoute(type))
             viewModel.onEvent(MapEvent.NicknameNavigationHandled)
+        }
+    }
+
+    LaunchedEffect(uiState.navigateToCachedLocations) {
+        uiState.navigateToCachedLocations?.let { type ->
+            navController.navigate(Screen.CachedLocations.createRoute(type))
+            viewModel.onEvent(MapEvent.CachedLocationsNavigationHandled)
         }
     }
 

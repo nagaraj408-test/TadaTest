@@ -58,12 +58,16 @@ class MapViewModel @Inject constructor(
             MapEvent.AClicked -> {
                 if (uiState.value.aLocation != null) {
                     _uiState.update { it.copy(navigateToNickname = "A") }
+                } else {
+                    _uiState.update { it.copy(navigateToCachedLocations = "A") }
                 }
             }
 
             MapEvent.BClicked -> {
                 if (uiState.value.bLocation != null) {
                     _uiState.update { it.copy(navigateToNickname = "B") }
+                } else {
+                    _uiState.update { it.copy(navigateToCachedLocations = "B") }
                 }
             }
 
@@ -80,6 +84,10 @@ class MapViewModel @Inject constructor(
 
             MapEvent.NicknameNavigationHandled -> {
                 _uiState.update { it.copy(navigateToNickname = null) }
+            }
+
+            MapEvent.CachedLocationsNavigationHandled -> {
+                _uiState.update { it.copy(navigateToCachedLocations = null) }
             }
 
             MapEvent.Reset -> {
@@ -123,7 +131,6 @@ class MapViewModel @Inject constructor(
         viewModelScope.launch {
             val state = uiState.value
             try {
-                // Ensure we have an address before setting location
                 val address = if (state.currentAddress == "Searching..." || state.currentAddress == "Searching location...") {
                     getAddressUseCase(state.currentLatitude, state.currentLongitude) ?: "Unknown"
                 } else {
@@ -142,9 +149,67 @@ class MapViewModel @Inject constructor(
                 } else if (state.bLocation == null) {
                     _uiState.update { it.copy(bLocation = location) }
                 }
+
+                // Cache the location
+                cacheLocationUseCase(
+                    com.demo.tada.domain.model.CachedLocation(
+                        latitude = location.latitude,
+                        longitude = location.longitude,
+                        address = location.address,
+                        aqi = location.aqi
+                    )
+                )
+
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 _uiState.update { it.copy(error = e.message) }
+            }
+        }
+    }
+
+    fun setLocationFromCache(type: String, cachedLocation: com.demo.tada.domain.model.CachedLocation) {
+        val location = LocationInfo(
+            latitude = cachedLocation.latitude,
+            longitude = cachedLocation.longitude,
+            aqi = cachedLocation.aqi,
+            address = cachedLocation.address
+        )
+        _uiState.update { state ->
+            if (type == "A") {
+                state.copy(aLocation = location)
+            } else {
+                state.copy(bLocation = location)
+            }
+        }
+    }
+
+    fun setLocationsFromHistory(a: LocationInfo, b: LocationInfo) {
+        _uiState.update { state ->
+            state.copy(
+                aLocation = a,
+                bLocation = b
+            )
+        }
+        // Fetch fresh AQI for both
+        loadAirQualityForLocation(a)
+        loadAirQualityForLocation(b)
+    }
+
+    private fun loadAirQualityForLocation(location: LocationInfo) {
+        viewModelScope.launch {
+            try {
+                val aqi = getAirQualityUseCase(location.latitude, location.longitude)
+                _uiState.update { state ->
+                    if (state.aLocation?.latitude == location.latitude && state.aLocation?.longitude == location.longitude) {
+                        state.copy(aLocation = state.aLocation?.copy(aqi = aqi))
+                    } else if (state.bLocation?.latitude == location.latitude && state.bLocation?.longitude == location.longitude) {
+                        state.copy(bLocation = state.bLocation?.copy(aqi = aqi))
+                    } else {
+                        state
+                    }
+                }
+            } catch (e: Exception) {
+                // Ignore background AQI refresh errors
             }
         }
     }

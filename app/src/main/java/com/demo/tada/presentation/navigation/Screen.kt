@@ -28,6 +28,14 @@ sealed class Screen(
         route = "history"
     )
 
+    data object CachedLocations : Screen(
+        route = "cached_locations/{type}"
+    ) {
+        fun createRoute(type: String): String {
+            return "cached_locations/$type"
+        }
+    }
+
     data object Nickname : Screen(
         route = "nickname/{type}"
     ) {

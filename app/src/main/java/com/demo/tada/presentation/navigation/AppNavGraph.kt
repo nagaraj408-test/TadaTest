@@ -9,6 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.NavType
 import com.demo.tada.presentation.screen.booking.BookingScreen
+import com.demo.tada.presentation.screen.cached.CachedLocationsScreen
 import com.demo.tada.presentation.screen.history.HistoryScreen
 import com.demo.tada.presentation.screen.map.MapScreen
 import com.demo.tada.presentation.screen.nickname.NicknameScreen
@@ -64,6 +65,25 @@ fun AppNavGraph(
             route = Screen.History.route
         ) {
             HistoryScreen(navController = navController)
+        }
+
+        composable(
+            route = Screen.CachedLocations.route,
+            arguments = listOf(
+                navArgument("type") {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val type = backStackEntry.arguments?.getString("type")
+            val mapBackStackEntry = remember(backStackEntry) {
+                navController.getBackStackEntry(Screen.Map.route)
+            }
+            CachedLocationsScreen(
+                navController = navController,
+                type = type,
+                mapBackStackEntry = mapBackStackEntry
+            )
         }
     }
 }

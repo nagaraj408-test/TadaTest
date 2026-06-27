@@ -35,12 +35,18 @@ class MockBookingInterceptor @Inject constructor() : Interceptor {
         request.body?.writeTo(buffer)
         val requestBodyString = buffer.readUtf8()
         val requestJson = JSONObject(requestBodyString)
+        val a = requestJson.getJSONObject("a")
+        val b = requestJson.getJSONObject("b")
+        val aqiA = a.optInt("aqi", 50)
+        val aqiB = b.optInt("aqi", 50)
+        
+        val price = 5000.0 + (aqiA + aqiB) * 10.0
 
         val responseJson = JSONObject().apply {
             put("id", (1000..9999).random())
-            put("a", requestJson.getJSONObject("a"))
-            put("b", requestJson.getJSONObject("b"))
-            put("price", 10000.0)
+            put("a", a)
+            put("b", b)
+            put("price", price)
         }
 
         savedBookings.add(responseJson)

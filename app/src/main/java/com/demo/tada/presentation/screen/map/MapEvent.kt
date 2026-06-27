@@ -19,5 +19,7 @@ sealed interface MapEvent {
 
     data object NicknameNavigationHandled : MapEvent
 
+    data object CachedLocationsNavigationHandled : MapEvent
+
     data object Reset : MapEvent
 }

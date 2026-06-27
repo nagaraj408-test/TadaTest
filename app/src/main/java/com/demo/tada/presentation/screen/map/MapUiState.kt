@@ -24,5 +24,7 @@ data class MapUiState(
 
     val navigateToNickname: String? = null,
 
+    val navigateToCachedLocations: String? = null,
+
     val bookingSummary: com.demo.tada.domain.model.Book? = null
 )

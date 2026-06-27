@@ -1,6 +1,7 @@
 package com.demo.tada.presentation.screen.history
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,7 +16,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.demo.tada.domain.model.Book
+import com.demo.tada.presentation.navigation.Screen
 import com.demo.tada.presentation.screen.history.viewmodel.HistoryViewModel
+import com.demo.tada.presentation.screen.map.viewmodel.MapViewModel
 import com.demo.tada.ui.theme.TadaBlue
 
 @Composable
@@ -100,7 +103,23 @@ fun HistoryScreen(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(uiState.bookings) { book ->
-                        HistoryItem(book)
+                        HistoryItem(book) {
+                            val mapBackStackEntry = try {
+                                navController.getBackStackEntry(Screen.Map.route)
+                            } catch (e: Exception) {
+                                null
+                            }
+                            mapBackStackEntry?.let { entry ->
+                                // We can't easily call MapViewModel here because hiltViewModel() 
+                                // inside a callback might not work as expected or might create a new one.
+                                // But since we are navigating back, we can just pop and let the MapScreen handle it?
+                                // Actually, we can use the entry to get the ViewModel.
+                            }
+                            // Simplified approach for this task:
+                            navController.previousBackStackEntry?.savedStateHandle?.set("book_a", book.a)
+                            navController.previousBackStackEntry?.savedStateHandle?.set("book_b", book.b)
+                            navController.popBackStack(Screen.Map.route, false)
+                        }
                         HorizontalDivider(color = Color(0xFFEEEEEE))
                     }
                 }
@@ -126,10 +145,11 @@ fun HistoryScreen(
 }
 
 @Composable
-fun HistoryItem(book: Book) {
+fun HistoryItem(book: Book, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable { onClick() }
             .padding(16.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
