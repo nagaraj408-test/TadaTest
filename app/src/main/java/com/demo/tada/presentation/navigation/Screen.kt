@@ -29,6 +29,14 @@ sealed class Screen(
     )
 
     data object Nickname : Screen(
-        route = "nickname"
-    )
+        route = "nickname/{type}"
+    ) {
+
+        fun createRoute(
+            type: String
+        ): String {
+
+            return "nickname/$type"
+        }
+    }
 }

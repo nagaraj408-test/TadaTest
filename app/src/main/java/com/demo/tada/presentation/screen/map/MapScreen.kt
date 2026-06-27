@@ -1,5 +1,8 @@
 package com.demo.tada.presentation.screen.map
 
+import android.Manifest
+import android.annotation.SuppressLint
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,12 +21,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import androidx.compose.ui.platform.LocalContext
 import com.demo.tada.presentation.navigation.Screen
 import com.demo.tada.presentation.screen.map.viewmodel.MapViewModel
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
 
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.PermissionState
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
+
+@SuppressLint("MissingPermission")
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun MapScreen(
     navController: NavHostController,
@@ -31,6 +44,18 @@ fun MapScreen(
 ) {
 
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val locationPermissionState: PermissionState = rememberPermissionState(
+        Manifest.permission.ACCESS_FINE_LOCATION
+    )
+
+    val fusedLocationClient = remember {
+        LocationServices.getFusedLocationProviderClient(context)
+    }
+
+    LaunchedEffect(Unit) {
+        locationPermissionState.launchPermissionRequest()
+    }
 
     val cameraPositionState =
         rememberCameraPositionState {
@@ -43,14 +68,28 @@ fun MapScreen(
             )
         }
 
+    LaunchedEffect(locationPermissionState.status.isGranted) {
+        if (locationPermissionState.status.isGranted) {
+            fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                location?.let {
+                    cameraPositionState.move(
+                        CameraUpdateFactory.newLatLngZoom(
+                            LatLng(it.latitude, it.longitude),
+                            15f
+                        )
+                    )
+                }
+            }
+        }
+    }
+
     LaunchedEffect(
         cameraPositionState.isMoving
     ) {
 
         if (!cameraPositionState.isMoving) {
 
-            val target =
-                cameraPositionState.position.target
+            val target = cameraPositionState.position.target
 
             viewModel.onEvent(
                 MapEvent.CameraMoved(
@@ -61,14 +100,35 @@ fun MapScreen(
         }
     }
 
+    LaunchedEffect(uiState.navigateToBooking) {
+        if (uiState.navigateToBooking) {
+            navController.navigate(Screen.Booking.route)
+            viewModel.onEvent(MapEvent.BookingNavigationHandled)
+        }
+    }
+
+    LaunchedEffect(uiState.navigateToNickname) {
+        uiState.navigateToNickname?.let { type ->
+            navController.navigate(Screen.Nickname.createRoute(type))
+            viewModel.onEvent(MapEvent.NicknameNavigationHandled)
+        }
+    }
+
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
 
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
-            cameraPositionState = cameraPositionState
-        )
+            cameraPositionState = cameraPositionState,
+            properties = MapProperties(isMyLocationEnabled = locationPermissionState.status.isGranted)
+        ) {
+            Marker(
+                state = rememberUpdatedMarkerState(
+                    position = cameraPositionState.position.target
+                )
+            )
+        }
 
         Text(
             text = "aqi ${uiState.currentAqi}",
@@ -104,7 +164,11 @@ fun MapScreen(
             ) {
 
                 Card(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            viewModel.onEvent(MapEvent.AClicked)
+                        }
                 ) {
 
                     Text(
@@ -122,7 +186,11 @@ fun MapScreen(
                 )
 
                 Card(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            viewModel.onEvent(MapEvent.BClicked)
+                        }
                 ) {
 
                     Text(
@@ -147,11 +215,7 @@ fun MapScreen(
                         uiState.aLocation != null &&
                         uiState.bLocation != null
                     ) {
-
-                        navController.navigate(
-                            Screen.Booking.route
-                        )
-
+                        viewModel.onEvent(MapEvent.BookClicked)
                     } else {
 
                         viewModel.onEvent(
@@ -165,17 +229,7 @@ fun MapScreen(
             ) {
 
                 Text(
-                    text = when {
-
-                        uiState.aLocation == null ->
-                            "Set A"
-
-                        uiState.bLocation == null ->
-                            "Set B"
-
-                        else ->
-                            "Book"
-                    }
+                    text = viewModel.getButtonText()
                 )
             }
         }

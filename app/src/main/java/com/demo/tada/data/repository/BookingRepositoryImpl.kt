@@ -25,7 +25,7 @@ class BookingRepositoryImpl @Inject constructor(
         return airQualityApi.getAirQuality(
             latitude = latitude,
             longitude = longitude,
-            token = "BuildConfig.AQI_TOKEN"
+            token = com.demo.tada.utils.Constants.AQI_TOKEN
         ).data.aqi
     }
 

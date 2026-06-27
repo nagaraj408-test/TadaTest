@@ -39,7 +39,64 @@ class MapViewModel @Inject constructor(
             MapEvent.SetLocation -> {
                 setLocation()
             }
-            else -> Unit
+
+            MapEvent.AClicked -> {
+                if (uiState.value.aLocation != null) {
+                    _uiState.update { it.copy(navigateToNickname = "A") }
+                }
+            }
+
+            MapEvent.BClicked -> {
+                if (uiState.value.bLocation != null) {
+                    _uiState.update { it.copy(navigateToNickname = "B") }
+                }
+            }
+
+            MapEvent.BookClicked -> {
+                if (uiState.value.aLocation != null && uiState.value.bLocation != null) {
+                    _uiState.update { it.copy(navigateToBooking = true) }
+                    createBooking()
+                }
+            }
+
+            MapEvent.BookingNavigationHandled -> {
+                _uiState.update { it.copy(navigateToBooking = false) }
+            }
+
+            MapEvent.NicknameNavigationHandled -> {
+                _uiState.update { it.copy(navigateToNickname = null) }
+            }
+
+            MapEvent.Reset -> {
+                _uiState.value = MapUiState()
+            }
+        }
+    }
+
+    fun createBooking() {
+        val state = uiState.value
+        val a = state.aLocation ?: return
+        val b = state.bLocation ?: return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            runCatching {
+                createBookingUseCase(a, b)
+            }.onSuccess { book ->
+                _uiState.update { it.copy(isLoading = false, bookingSummary = book) }
+            }.onFailure { throwable ->
+                _uiState.update { it.copy(isLoading = false, error = throwable.message) }
+            }
+        }
+    }
+
+    fun setNickname(type: String, nickname: String) {
+        _uiState.update { state ->
+            if (type == "A") {
+                state.copy(aLocation = state.aLocation?.copy(nickname = nickname))
+            } else {
+                state.copy(bLocation = state.bLocation?.copy(nickname = nickname))
+            }
         }
     }
 

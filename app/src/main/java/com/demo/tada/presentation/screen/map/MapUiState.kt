@@ -18,5 +18,9 @@ data class MapUiState(
 
     val error: String? = null,
 
-    val navigateToBooking: Boolean = false
+    val navigateToBooking: Boolean = false,
+
+    val navigateToNickname: String? = null,
+
+    val bookingSummary: com.demo.tada.domain.model.Book? = null
 )

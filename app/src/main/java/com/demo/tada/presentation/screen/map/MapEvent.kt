@@ -16,4 +16,8 @@ sealed interface MapEvent {
     data object AClicked : MapEvent
 
     data object BClicked : MapEvent
+
+    data object NicknameNavigationHandled : MapEvent
+
+    data object Reset : MapEvent
 }
