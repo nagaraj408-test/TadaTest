@@ -3,6 +3,7 @@ package com.demo.tada.presentation.screen.map.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.demo.tada.data.mapper.LocationMapper
 import com.demo.tada.domain.model.LocationInfo
 import com.demo.tada.domain.usecase.CacheLocationUseCase
 import com.demo.tada.domain.usecase.CreateBookingUseCase
@@ -132,9 +133,12 @@ class MapViewModel @Inject constructor(
             try {
                 delay(300.milliseconds)
                 val address = getAddressUseCase(latitude, longitude)
+                Log.d("MapViewModel", "Address updated: $address")
                 _uiState.update { it.copy(currentAddress = address ?: "Unknown Address") }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
+                Log.e("MapViewModel", "Address fetch failed", e)
+                _uiState.update { it.copy(currentAddress = "Network Error, please check yours connection") }
             }
         }
     }
@@ -151,7 +155,7 @@ class MapViewModel @Inject constructor(
                     state.currentAddress
                 }
 
-                val location = LocationInfo(
+                val location = LocationMapper.toLocationInfo(
                     latitude = state.currentLatitude,
                     longitude = state.currentLongitude,
                     aqi = state.currentAqi,
@@ -182,7 +186,7 @@ class MapViewModel @Inject constructor(
     }
 
     fun setLocationFromCache(type: String, cachedLocation: com.demo.tada.domain.model.CachedLocation) {
-        val location = LocationInfo(
+        val location = LocationMapper.toLocationInfo(
             latitude = cachedLocation.latitude,
             longitude = cachedLocation.longitude,
             aqi = cachedLocation.aqi,
