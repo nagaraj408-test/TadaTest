@@ -22,11 +22,14 @@ class BookingRepositoryImpl @Inject constructor(
     private val cachedLocations = mutableListOf<CachedLocation>()
 
     override suspend fun getAirQuality(latitude: Double, longitude: Double): Int {
+
+        // Check if we have cached value alreday
         val cached = findInCache(latitude, longitude)
         if (cached != null) {
             return cached.aqi
         }
 
+        //if not cached value, fetch from API
         return airQualityApi.getAirQuality(
             latitude = latitude,
             longitude = longitude,

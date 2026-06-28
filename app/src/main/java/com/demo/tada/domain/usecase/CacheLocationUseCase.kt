@@ -11,7 +11,6 @@ class CacheLocationUseCase @Inject constructor(
     suspend operator fun invoke(
         location: CachedLocation
     ) {
-
         repository.cacheLocation(location)
     }
 }

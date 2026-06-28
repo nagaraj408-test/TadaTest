@@ -38,6 +38,7 @@ fun BookingScreen(
     Column(modifier = Modifier
         .fillMaxSize()
         .background(Color.White)) {
+
         // Top Safe Area
         Box(
             modifier = Modifier

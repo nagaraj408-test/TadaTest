@@ -53,7 +53,7 @@ fun CachedLocationsScreen(
             }
         } else if (uiState.locations.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "No cached locations found")
+                Text(text = "No cached locations found ..!")
             }
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize()) {

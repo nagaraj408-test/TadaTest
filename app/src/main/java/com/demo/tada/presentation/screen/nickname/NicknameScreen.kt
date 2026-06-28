@@ -18,7 +18,6 @@ import com.demo.tada.presentation.screen.map.viewmodel.MapViewModel
 import com.demo.tada.ui.theme.TadaYellow
 import com.demo.tada.ui.theme.TadaBlue
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NicknameScreen(
     navController: NavHostController,
@@ -29,7 +28,9 @@ fun NicknameScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     val location = if (type == "A") uiState.aLocation else uiState.bLocation
-    var nickname by remember { mutableStateOf(location?.nickname ?: "") }
+    
+    // Use a local state that updates instantly
+    var textState by remember { mutableStateOf(location?.nickname ?: "") }
 
     Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
         // Top Safe Area
@@ -56,13 +57,13 @@ fun NicknameScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = type ?: "A",
-                    fontSize = 28.sp,
+                    fontSize = 24.sp,
                     fontWeight = FontWeight.Black,
                     color = Color.Black
                 )
                 Spacer(modifier = Modifier.width(24.dp))
                 Text(
-                    text = "location name",
+                    text = location?.address ?: "location name",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
@@ -79,11 +80,12 @@ fun NicknameScreen(
                 Text(
                     text = "aqi",
                     fontSize = 18.sp,
-                    color = Color.Gray
+                    color = Color.Gray,
+                    fontWeight = FontWeight.W700
                 )
                 Text(
                     text = "${location?.aqi ?: 0}",
-                    fontSize = 20.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
                 )
@@ -92,11 +94,11 @@ fun NicknameScreen(
             // Pushes the input and button to the bottom
             Spacer(modifier = Modifier.weight(1f))
 
-            TextField(
-                value = nickname,
+            OutlinedTextField(
+                value = textState,
                 onValueChange = {
                     if (it.length <= 20) {
-                        nickname = it
+                        textState = it
                     }
                 },
                 placeholder = { 
@@ -104,17 +106,17 @@ fun NicknameScreen(
                         "nickname", 
                         color = Color.Black, 
                         fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
+                        fontSize = 20.sp
                     ) 
                 },
                 modifier = Modifier.fillMaxWidth().height(64.dp),
                 singleLine = true,
                 shape = RoundedCornerShape(8.dp),
                 colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    focusedContainerColor = Color(0xFFF2F5F7),
-                    unfocusedContainerColor = Color(0xFFF2F5F7),
+                    focusedIndicatorColor = Color(0xFFEEEEEE),
+                    unfocusedIndicatorColor = Color(0xFFEEEEEE),
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
                     focusedTextColor = Color.Black,
                     unfocusedTextColor = Color.Black
                 )
@@ -125,7 +127,7 @@ fun NicknameScreen(
             Button(
                 onClick = {
                     type?.let {
-                        viewModel.setNickname(it, nickname)
+                        viewModel.setNickname(it, textState)
                     }
                     navController.popBackStack()
                 },

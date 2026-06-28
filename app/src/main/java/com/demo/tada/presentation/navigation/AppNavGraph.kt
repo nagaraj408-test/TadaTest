@@ -24,12 +24,15 @@ fun AppNavGraph(
         startDestination = Screen.Map.route
     ) {
 
+        // Map Screen
         composable(
             route = Screen.Map.route
         ) {
             MapScreen(navController = navController)
         }
 
+
+        // Nickname Screen
         composable(
             route = Screen.Nickname.route,
             arguments = listOf(
@@ -49,6 +52,8 @@ fun AppNavGraph(
             )
         }
 
+
+        // Booking Screen
         composable(
             route = Screen.Booking.route
         ) {
@@ -61,12 +66,17 @@ fun AppNavGraph(
             )
         }
 
+
+
+        // History Screen
         composable(
             route = Screen.History.route
         ) {
             HistoryScreen(navController = navController)
         }
 
+
+        // Cached Locations Screen
         composable(
             route = Screen.CachedLocations.route,
             arguments = listOf(

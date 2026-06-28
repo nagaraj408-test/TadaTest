@@ -8,14 +8,7 @@ class GetAirQualityUseCase @Inject constructor(
     private val repository: BookingRepository
 ) {
 
-    suspend operator fun invoke(
-        latitude: Double,
-        longitude: Double
-    ): Int {
-
-        return repository.getAirQuality(
-            latitude,
-            longitude
-        )
+    suspend operator fun invoke(latitude: Double, longitude: Double): Int {
+        return repository.getAirQuality(latitude, longitude)
     }
 }

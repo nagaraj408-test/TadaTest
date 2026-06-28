@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,7 +31,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MyLocation
-import kotlin.time.Duration.Companion.seconds
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,8 +68,11 @@ fun MapScreen(
     viewModel: MapViewModel = hiltViewModel()
 ) {
 
+    // Observe ViewModel State
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+
+    // Request Location Permissions
     val permissionsState = rememberMultiplePermissionsState(
         listOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -77,10 +80,12 @@ fun MapScreen(
         )
     )
 
+    // Initialize Fused Location Client
     val fusedLocationClient = remember {
         LocationServices.getFusedLocationProviderClient(context)
     }
 
+    //Camera position state
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(
             LatLng(37.5665, 126.9780),
@@ -133,16 +138,14 @@ fun MapScreen(
         }
     }
 
-    // Sync camera target with ViewModel (Pointer Location & AQI)
+    // Sync camera target with ViewModel (Pointer Location and  AQI)
     LaunchedEffect(cameraPositionState) {
-        snapshotFlow { cameraPositionState.position.target }
-            .distinctUntilChanged()
+        snapshotFlow { cameraPositionState.position.target }.distinctUntilChanged()
             .collectLatest { target ->
                 if (target.latitude != 0.0 || target.longitude != 0.0) {
                     viewModel.onEvent(
                         MapEvent.CameraMoved(
-                            latitude = target.latitude,
-                            longitude = target.longitude
+                            latitude = target.latitude, longitude = target.longitude
                         )
                     )
                 }
@@ -170,7 +173,9 @@ fun MapScreen(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .background(Color.White)) {
         // Top Safe Area
         Box(
             modifier = Modifier
@@ -192,15 +197,20 @@ fun MapScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color.White)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Bottom
         ) {
             Text(
-                text = "aqi ",
-                fontSize = 18.sp,
-                color = Color.Black
+                text = "aqi",
+                fontSize = 20.sp,
+                color = Color.Gray,
+                fontWeight = FontWeight.W700,
+                modifier = Modifier.padding(bottom = 2.dp)
             )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
             Text(
                 text = "${uiState.currentAqi}",
                 fontSize = 20.sp,
@@ -252,7 +262,7 @@ fun MapScreen(
                     },
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding(bottom = 140.dp, end = 16.dp),
+                        .padding(bottom = 184.dp, end = 16.dp),
                     containerColor = Color.White,
                     contentColor = TadaBlue,
                     shape = CircleShape
@@ -303,43 +313,54 @@ fun MapScreen(
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .height(64.dp)
                                 .clickable { viewModel.onEvent(MapEvent.AClicked) },
-                            shape = RoundedCornerShape(4.dp),
+                            shape = RoundedCornerShape(8.dp),
                             colors = CardDefaults.cardColors(containerColor = TadaGray)
                         ) {
-                            Text(
-                                text = uiState.aLocation?.nickname ?: uiState.aLocation?.address ?: "A",
-                                modifier = Modifier.padding(12.dp),
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.Black
-                            )
+                            Box(
+                                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                Text(
+                                    text = uiState.aLocation?.nickname ?: uiState.aLocation?.address ?: "A",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.Black
+                                )
+                            }
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
-
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .height(64.dp)
                                 .clickable { viewModel.onEvent(MapEvent.BClicked) },
-                            shape = RoundedCornerShape(4.dp),
+                            shape = RoundedCornerShape(8.dp),
                             colors = CardDefaults.cardColors(containerColor = TadaGray)
                         ) {
-                            Text(
-                                text = uiState.bLocation?.nickname ?: uiState.bLocation?.address ?: "B",
-                                modifier = Modifier.padding(12.dp),
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.Black
-                            )
+                            Box(
+                                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                Text(
+                                    text = uiState.bLocation?.nickname ?: uiState.bLocation?.address ?: "B",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.Black
+                                )
+                            }
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
 
                     Button(
                         onClick = {
@@ -350,13 +371,14 @@ fun MapScreen(
                             }
                         },
                         modifier = Modifier
-                            .width(112.dp)
+                            .width(96.dp)
                             .fillMaxHeight(),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = TadaYellow,
                             contentColor = Color.Black
-                        )
+                        ),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 18.dp)
                     ) {
                         Text(
                             text = viewModel.getButtonText(),

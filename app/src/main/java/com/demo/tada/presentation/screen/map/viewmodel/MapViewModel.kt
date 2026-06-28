@@ -37,6 +37,8 @@ class MapViewModel @Inject constructor(
 
     fun onEvent(event: MapEvent) {
         when (event) {
+
+            // Handle Camera Moved Event
             is MapEvent.CameraMoved -> {
                 _uiState.update {
                     it.copy(
@@ -47,14 +49,19 @@ class MapViewModel @Inject constructor(
                         error = null
                     )
                 }
+
                 loadAirQuality(event.latitude, event.longitude)
                 loadAddress(event.latitude, event.longitude)
             }
 
+
+            // Handle Set Location Event
             MapEvent.SetLocation -> {
                 setLocation()
             }
 
+
+            // Handle A and B Clicked Event
             MapEvent.AClicked -> {
                 if (uiState.value.aLocation != null) {
                     _uiState.update { it.copy(navigateToNickname = "A") }
@@ -63,6 +70,7 @@ class MapViewModel @Inject constructor(
                 }
             }
 
+            // Handle A and B Clicked Event
             MapEvent.BClicked -> {
                 if (uiState.value.bLocation != null) {
                     _uiState.update { it.copy(navigateToNickname = "B") }
@@ -71,6 +79,7 @@ class MapViewModel @Inject constructor(
                 }
             }
 
+            // Handle Book Clicked Event
             MapEvent.BookClicked -> {
                 if (uiState.value.aLocation != null && uiState.value.bLocation != null) {
                     _uiState.update { it.copy(navigateToBooking = true, error = null) }
@@ -78,55 +87,60 @@ class MapViewModel @Inject constructor(
                 }
             }
 
+
+            // Handle Navigation Handled Event
             MapEvent.BookingNavigationHandled -> {
                 _uiState.update { it.copy(navigateToBooking = false) }
             }
 
+            // Handle Navigation Handled Event
             MapEvent.NicknameNavigationHandled -> {
                 _uiState.update { it.copy(navigateToNickname = null) }
             }
 
+            // Handle Navigation Handled Event
             MapEvent.CachedLocationsNavigationHandled -> {
                 _uiState.update { it.copy(navigateToCachedLocations = null) }
             }
 
+            // Handle Reset Event
             MapEvent.Reset -> {
                 _uiState.value = MapUiState()
             }
         }
     }
 
+    // Load AQI for a given location
     private fun loadAirQuality(latitude: Double, longitude: Double) {
         aqiJob?.cancel()
         aqiJob = viewModelScope.launch {
             try {
                 delay(300.milliseconds)
                 val aqi = getAirQualityUseCase(latitude, longitude)
-                Log.d("MapViewModel", "AQI updated: $aqi for ($latitude, $longitude)")
                 _uiState.update { it.copy(currentAqi = aqi) }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
-                Log.e("MapViewModel", "AQI fetch failed", e)
                 _uiState.update { it.copy(error = e.message) }
             }
         }
     }
 
+    // Load Address for a given location
     private fun loadAddress(latitude: Double, longitude: Double) {
         addressJob?.cancel()
         addressJob = viewModelScope.launch {
             try {
                 delay(300.milliseconds)
                 val address = getAddressUseCase(latitude, longitude)
-                Log.d("MapViewModel", "Address updated: $address")
                 _uiState.update { it.copy(currentAddress = address ?: "Unknown Address") }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
-                Log.e("MapViewModel", "Address fetch failed", e)
             }
         }
     }
 
+
+    // Set Location from current location
     private fun setLocation() {
         viewModelScope.launch {
             val state = uiState.value
